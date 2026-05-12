@@ -26,11 +26,11 @@ This is the load-bearing concept of the whole skill, so worth being precise abou
 
 ### What "internal model" means here
 
-There are two kinds of internal model. The first is _weight-level_ — the kind you'd get from fine-tuning. The corpus becomes part of the model's parameters and the probability distribution of next-token prediction shifts toward your voice. This is the only path to truly consistent voice across topics, robust to context drift, no skimming-the-corpus failure mode. It's also not currently exposed for Claude.
+There are two kinds of internal model. The first is _weight-level_ — the kind you'd get from fine-tuning. The corpus becomes part of the model's parameters and the probability distribution of next-token prediction shifts toward your voice. In principle this gives consistent voice across topics. In practice, at the data scale most individuals can produce (8–15 corpus pieces, maybe a hundred or two paired examples), fine-tuning a local 7B model produces drafts that are *worse* than what a well-built markdown skill produces — not better. The fine-tuning ceiling at small-data scale sits BELOW the markdown-skill ceiling, not above it. (Weight-level fine-tuning of Claude itself is also not exposed.)
 
 The second is _context-level_ — the kind a markdown skill can produce. Your corpus sits in the input context, and the model is free to read it and condition its output on it, but its weights are unchanged. Generation is still pulled hard toward pretraining priors *(i.e. polished professional writing)*. A good protocol can fight the pull, a bad one can't, but no protocol can eliminate it.
 
-A markdown skill cannot build a true internal model. What it _can_ do is force the model to _simulate_ having one, every time, from scratch, by computing a structured analysis of your writing into context before drafting. That simulation is the writer-model. It's real and useful — but it has a structural ceiling around 85%.
+A markdown skill cannot build a true internal model. What it _can_ do is force the model to _simulate_ having one, every time, from scratch, by computing a structured analysis of your writing into context before drafting. That simulation is the writer-model. It's real and useful, and empirically — at the data scale most individuals can produce — it outperforms locally fine-tuned models of comparable accessibility. The ceiling for context-conditioned skills is around 85% voice match; the ceiling for a hobbyist-scale local fine-tune of a 7B model sits lower than that, not higher.
 
 ### Why writing it down works (and reading silently doesn't)
 
@@ -78,7 +78,9 @@ Imitation produces sentences that resemble the corpus. Inhabitation produces sen
 
 The writer-model encodes patterns. The protocol's drafting and critique steps reference patterns, not outputs. The corpus stays as ground truth, but it's behind the analysis — the analysis is what's load-bearing during generation.
 
-This is the closest a context-conditioned skill can get to the weight-level "internal model" that fine-tuning would give you. It's not the same thing. It's a forced simulation of the same thing, every invocation, from scratch. The protocol is the cost; the inhabitation is the payoff.
+This is what a context-conditioned skill produces — a forced simulation of the writer's internal model, every invocation, from scratch. The protocol is the cost; the inhabitation is the payoff.
+
+The intuitive alternative is fine-tuning a local open-source model on the same corpus. I tried this end-to-end. At ~100 paired examples, on a 7B base, across six runs spanning four training paradigms — basic SFT, structurally-distinct generics, two-stage continued-pretrain, two flavors of DPO — every variant produced drafts that were measurably worse than what this skill produces. The protocol approach wins at small-data scale, not the other way around.
 
 ## The four-part skill
 
@@ -259,7 +261,7 @@ These exist for one reason: cognitive forcing. Reading the corpus is passive. Wr
 
 Voice imitation through context-conditioned skills caps around 85%. Even with the protocol above, drafts will be 80–90% you, and the last 10–15% is your editing pass on phrasings that are uniquely yours and not reproducible from any sample size.
 
-Promising more than that is dishonest. The structural reason is that markdown skills can only condition on context — they don't change the model's weights. Higher fidelity requires fine-tuning, which is not currently exposed for Claude. When it is, the ceiling rises and the protocol gets simpler. Until then, this is the best feasible mechanism inside Claude Skills.
+Promising more than that is dishonest. The structural reason is that markdown skills can only condition on context — they don't change the model's weights. The intuitive next move from there is to fine-tune a local open-source model on the same corpus. Do not skip the empirical check before going down that road: at ~100 paired examples, across four training paradigms on a 7B local base, every variant I tried produced drafts that were worse than this skill produces, not better. The fine-tuning path needs orders of magnitude more data than most individuals can produce before it pays back. For personal voice at hobbyist data scale, this skill is the best feasible mechanism — not just a stopgap.
 
 ## Composition with other commands
 
@@ -288,7 +290,7 @@ mkdir -p ~/.claude/skills/your-voice/corpus
 
 ## Two things to be honest about
 
-**Voice transfer has a ceiling.** 85% on a good day with this mechanism. Anyone promising 99% from a markdown skill is either wrong or selling something. Plan to do the editing pass yourself.
+**Voice transfer has a ceiling.** 85% on a good day with this mechanism. Anyone promising 99% — from a markdown skill or from a hobbyist-scale local fine-tune — is either wrong or selling something. Plan to do the editing pass yourself.
 
 **The skill keeps growing.** Your voice now isn't your voice in two years. Add new pieces every few months — especially anything that landed well, or anything where you noticed yourself writing differently than usual. Treat the skill as a living artifact, not a one-time setup. Every off-voice draft the skill produces is a sharpening opportunity for `anti-corpus.md` and `ANTI_TIC_PATTERNS`.
 
