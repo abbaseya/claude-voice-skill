@@ -49,6 +49,8 @@ Read every file in `corpus/` **one at a time**, with the Read tool, no batching.
 
 The quotes are not optional. They are the proof you actually read the piece rather than skimming. A model that skims cannot produce accurate quotes.
 
+`check_baseline.py` mechanically verifies, after the writer-model is generated, that every `corpus/*.md` has its own `## <filename>` section in `corpus_notes.md` and that at least one quoted excerpt per section appears verbatim in the source. Batching multiple files into a single "by inspection" section, or summarising without verbatim quotes, fails this gate and forces a redo. Do not try to economise here — the gate will catch it.
+
 ### 3. Synthesize the writer-model (only when regenerating)
 
 Build `runtime/voice_model.md`. The first non-empty line MUST be:

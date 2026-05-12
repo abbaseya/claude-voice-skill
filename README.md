@@ -294,6 +294,30 @@ mkdir -p ~/.claude/skills/your-voice/corpus
 
 **The skill keeps growing.** Your voice now isn't your voice in two years. Add new pieces every few months — especially anything that landed well, or anything where you noticed yourself writing differently than usual. Treat the skill as a living artifact, not a one-time setup. Every off-voice draft the skill produces is a sharpening opportunity for `anti-corpus.md` and `ANTI_TIC_PATTERNS`.
 
+## Before you start: rename the skill
+
+This repo ships with `your-voice` as a placeholder name throughout. Most people will pick their own (e.g. `ahmed-voice`, `lina-voice`). The Python scripts auto-resolve their skill directory and work under any folder name — but `SKILL.md` and this `README.md` contain hardcoded `~/.claude/skills/your-voice/...` paths that need updating, otherwise the protocol's bash commands will point at the wrong place and nothing will work.
+
+Minimum changes for a rename to `<your-name>`:
+
+- `SKILL.md` line 2 — the `name:` frontmatter
+- `SKILL.md` lines 23, 31, 122 — protocol bash commands
+- `README.md` lines 88, 222, 286 — install/structure docs
+
+One-shot rename (works on macOS and Linux):
+
+```bash
+NAME="my-voice"  # whatever you want
+cd <repo-root>
+find . -type f \( -name '*.md' -o -name '*.py' \) -exec sed -i.bak "s|skills/your-voice|skills/${NAME}|g" {} +
+sed -i.bak "s/^name: your-voice$/name: ${NAME}/" SKILL.md
+find . -name '*.bak' -delete
+```
+
+Then move the renamed repo to `~/.claude/skills/${NAME}/`. The remaining `your-voice` references after this are narrative (the README's "wrong way" example) and script docstrings — neither is functional, leave or update for hygiene.
+
+Skipping the rename works too: install everything literally under `~/.claude/skills/your-voice/` and the skill still functions. Just an ugly name.
+
 ## TL;DR for setup
 
 1. Spend 30 minutes copying 8–15 real writing samples into `corpus/`. Don't curate.
