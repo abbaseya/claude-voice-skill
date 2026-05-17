@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-your-voice baseline check.
+my-voice baseline check.
 
 Two gates, both must pass for BASELINE_OK:
 
@@ -11,7 +11,7 @@ Two gates, both must pass for BASELINE_OK:
    that appears verbatim in the source. Catches silent batching: collapsing
    multiple files into one summary, or producing sections without real quotes.
 
-Used as the gate before drafting in the your-voice protocol.
+Used as the gate before drafting in the my-voice protocol.
 """
 
 import hashlib

@@ -1,26 +1,26 @@
 ---
-name: your-voice
-description: Use when drafting any first-person content in your voice — LinkedIn posts, articles, blog drafts, announcements, customer-facing writeups. Forces an ordered protocol that builds an internal model of you-as-writer from the corpus and drafts from inside that model. Compose with topic-specific skills for grounding.
+name: my-voice
+description: Use when drafting any first-person content in my voice — LinkedIn posts, articles, blog drafts, announcements, customer-facing writeups. Forces an ordered protocol that builds an internal model of me-as-writer from the corpus and drafts from inside that model. Compose with topic-specific skills for grounding.
 ---
 
-# Your voice
+# My voice
 
-This skill produces drafts in your voice by forcing the model — at every invocation — to **inhabit you as a writer** before drafting, draft from inside that inhabitation, and critique the draft as you would. The corpus is the source. Annotations and anti-corpus calibrate. The protocol is the forcing function: it makes the inhabitation cheap to do and expensive to skip.
+This skill produces drafts in my voice by forcing the model — at every invocation — to **inhabit me as a writer** before drafting, draft from inside that inhabitation, and critique the draft as I would. The corpus is the source. Annotations and anti-corpus calibrate. The protocol is the forcing function: it makes the inhabitation cheap to do and expensive to skip.
 
-The mechanism has a known structural ceiling around 85% voice match — text-only context conditioning cannot exceed that without weight-level fine-tuning. The last 10–15% is your editing pass.
+The mechanism has a known structural ceiling around 85% voice match — text-only context conditioning cannot exceed that without weight-level fine-tuning. The last 10–15% is my editing pass.
 
 ---
 
 ## Mandatory protocol
 
-Do every step in order. Do not skip steps because the topic seems simple, the draft seems short, or you "already know how the writer writes." The corpus and your prior compete; this protocol is what makes the corpus win.
+Do every step in order. Do not skip steps because the topic seems simple, the draft seems short, or I "already know how the writer writes." The corpus and my prior compete; this protocol is what makes the corpus win.
 
 ### 0. Setup
 
 Ensure the runtime directory exists:
 
 ```
-mkdir -p ~/.claude/skills/your-voice/runtime
+mkdir -p ~/.claude/skills/my-voice/runtime
 ```
 
 ### 1. Baseline check
@@ -28,7 +28,7 @@ mkdir -p ~/.claude/skills/your-voice/runtime
 Run:
 
 ```
-python3 ~/.claude/skills/your-voice/scripts/check_baseline.py
+python3 ~/.claude/skills/my-voice/scripts/check_baseline.py
 ```
 
 - If output starts with `BASELINE_OK`: skip to step 4 (the writer-model is current).
@@ -47,7 +47,7 @@ Read every file in `corpus/` **one at a time**, with the Read tool, no batching.
 - ...
 ```
 
-The quotes are not optional. They are the proof you actually read the piece rather than skimming. A model that skims cannot produce accurate quotes.
+The quotes are not optional. They are the proof I actually read the piece rather than skimming. A model that skims cannot produce accurate quotes.
 
 `check_baseline.py` mechanically verifies, after the writer-model is generated, that every `corpus/*.md` has its own `## <filename>` section in `corpus_notes.md` and that at least one quoted excerpt per section appears verbatim in the source. Batching multiple files into a single "by inspection" section, or summarising without verbatim quotes, fails this gate and forces a redo. Do not try to economise here — the gate will catch it.
 
@@ -85,15 +85,15 @@ Write `runtime/topic.md` with two short sections:
 
 ### 6. Engagement note
 
-Write `runtime/engagement.md`. List 5–7 specific moves drawn from `runtime/voice_model.md` that you commit to applying in this draft. Each move ties to a section of the voice model. This is the bridge that puts the writer-model into active reasoning before drafting begins.
+Write `runtime/engagement.md`. List 5–7 specific moves drawn from `runtime/voice_model.md` that I commit to applying in this draft. Each move ties to a section of the voice model. This is the bridge that puts the writer-model into active reasoning before drafting begins.
 
 ### 7. Abstract the input to ideas (only when rewriting a provided input)
 
-If the task is to rewrite an existing draft (input file provided), read the input file **once** and write `runtime/ideas.md` as a **flat unordered list of the core ideas** the input conveys. No structure preserved. No section labels copied. No paragraph order copied. No bullet count preserved. Just the substantive points, each as a single bullet, in whatever order makes sense to you reading them fresh.
+If the task is to rewrite an existing draft (input file provided), read the input file **once** and write `runtime/ideas.md` as a **flat unordered list of the core ideas** the input conveys. No structure preserved. No section labels copied. No paragraph order copied. No bullet count preserved. Just the substantive points, each as a single bullet, in whatever order makes sense to me reading them fresh.
 
 After writing `ideas.md`, **do not read the input file again**. This is a hard rule. The input's structural shape is a stronger pull on generation than the writer-model, and the only way to break that pull is to forget the input and rebuild from `ideas.md` + `voice_model.md` from scratch.
 
-If the task is to write a fresh piece (no input), skip this step — your `topic.md` already contains the substance.
+If the task is to write a fresh piece (no input), skip this step — my `topic.md` already contains the substance.
 
 ### 8. Draft
 
@@ -108,7 +108,7 @@ Do **not** open the input file again during drafting (if rewriting). Do **not** 
 
 ### 9. In-voice critique
 
-Write `runtime/critique.md`. Re-read the draft as the writer. Strike the 3 worst sentences and explain why each one fails, citing `voice_model.md` or `anti-corpus.md`. Be brutal. If you cannot honestly find 3 sentences that sound like Claude pretending to be the writer, you didn't critique honestly — try again with sharper eyes.
+Write `runtime/critique.md`. Re-read the draft as the writer. Strike the 3 worst sentences and explain why each one fails, citing `voice_model.md` or `anti-corpus.md`. Be brutal. If I cannot honestly find 3 sentences that sound like Claude pretending to be the writer, I didn't critique honestly — try again with sharper eyes.
 
 ### 10. Revise
 
@@ -119,7 +119,7 @@ Apply the critique. Rewrite the struck sentences. Keep revising until the draft 
 Run:
 
 ```
-python3 ~/.claude/skills/your-voice/scripts/safety_net.py <path-to-draft.md> [--input <path-to-input.md>]
+python3 ~/.claude/skills/my-voice/scripts/safety_net.py <path-to-draft.md> [--input <path-to-input.md>]
 ```
 
 Pass `--input` when rewriting an existing draft. The script then runs both:

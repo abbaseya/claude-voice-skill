@@ -1,13 +1,13 @@
 <!--
-This file is YOUR observations about how YOU write. Replace everything below the line with your own annotations.
+This file is YOUR observations about how YOU write. Replace everything below the line with my own annotations.
 
 Rules of thumb:
 - Falsifiable observations, not adjectives. "I open with the shortest version of my claim" is good. "I am direct" is useless.
-- Each line should be something you could verify by reading a sample of your own writing.
+- Each line should be something I could verify by reading a sample of my own writing.
 - Aim for 10–20 lines. More than 30 starts to dilute.
 - Number them or leave them as bullets — both work.
 
-The examples below are illustrative only, meant to show the SHAPE. Delete them and write your own.
+The examples below are illustrative only, meant to show the SHAPE. Delete them and write my own.
 -->
 
 1. I open with the shortest possible version of my claim, often a memorable plain-English statement.

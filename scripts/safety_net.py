@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-your-voice safety net.
+my-voice safety net.
 
 Mechanical typography + structural-drift check for catastrophic drift from
 the corpus baseline. NOT a voice judge. NOT a quality scorer. A smoke alarm
@@ -35,7 +35,7 @@ STATS_CACHE = Path(__file__).resolve().parent / "corpus_stats.json"
 # Common contractions. Lowercased.
 CONTRACTIONS = {
     "i'm", "i've", "i'd", "i'll",
-    "you're", "you've", "you'd", "you'll",
+    "I'm", "I've", "I'd", "I'll",
     "we're", "we've", "we'd", "we'll",
     "they're", "they've", "they'd", "they'll",
     "he's", "she's", "it's", "that's", "there's", "here's",
@@ -51,7 +51,7 @@ CONTRACTIONS = {
 ANTI_TIC_PATTERNS: List[Tuple[str, str]] = [
     (
         r"\bis not a typo\b",
-        "anti-corpus: 'is not a typo' construct. The writer prefers 'yes, you read that correctly' (if that pattern is in the corpus).",
+        "anti-corpus: 'is not a typo' construct. The writer prefers 'yes, I read that correctly' (if that pattern is in the corpus).",
     ),
     (
         r"^[#]{2,6}\s",  # any line starting with ## through ######
