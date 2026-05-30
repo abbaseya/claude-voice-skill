@@ -92,14 +92,18 @@ The intuitive alternative is fine-tuning a local open-source model on the same c
 ├── corpus/                     # 8–15 unedited writing samples
 ├── scripts/
 │   ├── check_baseline.py       # gates the protocol; hashes corpus + annotations
-│   └── safety_net.py           # post-draft mechanical typography check
+│   ├── safety_net.py           # post-draft mechanical typography check
+│   └── session_runtime.py      # resolves this session's per-session runtime dir
 └── runtime/                    # generated artifacts (regenerated as needed)
-    ├── voice_model.md          # the inhabited writer-model (corpus-derived)
-    ├── corpus_notes.md         # per-piece reading notes
-    ├── topic.md                # per-invocation topic intake
-    ├── engagement.md           # per-invocation moves committed for this draft
-    ├── ideas.md                # per-invocation flat list of ideas (rewrite case only)
-    └── critique.md             # per-invocation in-voice critique of own draft
+    ├── voice_model.md          # SHARED across sessions — the inhabited writer-model (corpus-derived)
+    ├── corpus_notes.md         # SHARED across sessions — per-piece reading notes
+    └── sessions/
+        └── <session-id>/       # per-session, isolated (keyed off $CLAUDE_CODE_SESSION_ID)
+            ├── topic.md        # per-invocation topic intake
+            ├── engagement.md   # per-invocation moves committed for this draft
+            ├── ideas.md        # per-invocation flat list of ideas (rewrite case only)
+            ├── critique.md     # per-invocation in-voice critique of own draft
+            └── draft.md        # per-invocation scratch draft
 ```
 
 Each piece does different work.
@@ -130,18 +134,18 @@ This is the load-bearing piece, and it must be a strict ordered protocol — not
 
 The 12-step protocol:
 
-1. **Setup.** `mkdir -p runtime/`.
+1. **Setup.** Run `scripts/session_runtime.py` to resolve and create this session's `runtime/sessions/<session-id>/` dir (call it `$SESSION_DIR`). Per-invocation artifacts go there; the shared corpus cache stays at the `runtime/` root.
 2. **Baseline check.** Run `scripts/check_baseline.py`. If `BASELINE_OK`, skip to step 4. If `REGENERATE`, continue.
 3. **Per-piece corpus reading.** Read every file in `corpus/` _one at a time_, no batching. For each file write a section in `runtime/corpus_notes.md` with a one-sentence summary plus 3–5 specific moves I make in that piece, with **quoted excerpts from the piece**. Quotes are non-optional — they are the proof the model actually read the piece rather than skimmed it.
 4. **Synthesize the writer-model.** Build `runtime/voice_model.md`. First line stamps the corpus hash. Required sections, each with corpus citations: _opening moves, transition vocabulary, paragraph and sentence rhythm, what the writer reaches for, what the writer avoids, handling uncertainty, handling praise, handling criticism, closings_. This is the inhabited writer-model — the structured analysis of me-as-writer, computed from the corpus, written down so it lives in active reasoning when drafting begins.
 5. **Read the calibrators.** `annotations.md` end to end, then `anti-corpus.md` end to end. They calibrate the writer-model — they do not replace it.
-6. **Topic intake.** Write `runtime/topic.md`: one-sentence topic + goal, plus the 2–3 corpus pieces closest in _shape_ (not topic) to what's being written.
-7. **Engagement note.** Write `runtime/engagement.md` — 5–7 specific moves drawn from `voice_model.md` that I commit to applying in this draft. This is the bridge that puts the writer-model into active reasoning before the first sentence is written.
-8. **Abstract input to ideas** _(only when rewriting a provided input)_. Read the input file **once** and write `runtime/ideas.md` as a flat unordered list of the core ideas — no structure preserved, no section labels copied, no paragraph order copied, no bullet count preserved. After this step, **do not read the input file again**. The input's structural shape is a stronger pull on generation than the writer-model; the only way to break that pull is to forget the input and rebuild from `ideas.md` + `voice_model.md` from scratch.
+6. **Topic intake.** Write `$SESSION_DIR/topic.md`: one-sentence topic + goal, plus the 2–3 corpus pieces closest in _shape_ (not topic) to what's being written.
+7. **Engagement note.** Write `$SESSION_DIR/engagement.md` — 5–7 specific moves drawn from `voice_model.md` that I commit to applying in this draft. This is the bridge that puts the writer-model into active reasoning before the first sentence is written.
+8. **Abstract input to ideas** _(only when rewriting a provided input)_. Read the input file **once** and write `$SESSION_DIR/ideas.md` as a flat unordered list of the core ideas — no structure preserved, no section labels copied, no paragraph order copied, no bullet count preserved. After this step, **do not read the input file again**. The input's structural shape is a stronger pull on generation than the writer-model; the only way to break that pull is to forget the input and rebuild from `ideas.md` + `voice_model.md` from scratch.
 9. **Draft.** Primary references in order: `voice_model.md`, `engagement.md`, `ideas.md` (if rewriting) or `topic.md` (if fresh), `anti-corpus.md`, then the corpus only when sampling specific phrasings. **The structural shape of the draft comes from `voice_model.md`, not from the input.** Do not open the input again during drafting. Do not consult `annotations.md` directly — that biases toward checklist application.
-10. **In-voice critique.** Write `runtime/critique.md`. Re-read the draft as the writer. Strike the 3 worst sentences and explain why each fails, citing `voice_model.md` or `anti-corpus.md`. Be brutal. If I cannot find 3 sentences that sound like Claude pretending to be the writer, I didn't critique honestly.
+10. **In-voice critique.** Write `$SESSION_DIR/critique.md`. Re-read the draft as the writer. Strike the 3 worst sentences and explain why each fails, citing `voice_model.md` or `anti-corpus.md`. Be brutal. If I cannot find 3 sentences that sound like Claude pretending to be the writer, I didn't critique honestly.
 11. **Revise.** Apply the critique. Rewrite the struck sentences. Iterate until the draft would survive its own critique pass.
-12. **Safety net.** Run `scripts/safety_net.py <draft.md> [--input <input.md>]` on the draft. Pass `--input` when rewriting. If `NO_VIOLATIONS`, deliver. If violations, address each and re-run.
+12. **Safety net.** Run `scripts/safety_net.py "$SESSION_DIR/draft.md" [--input <input.md>]` on the draft. Pass `--input` when rewriting. If `NO_VIOLATIONS`, deliver. If violations, address each and re-run.
 
 Steps 3, 4, 6, 7, 8, and 10 are the cognitive forcing function. Each one writes a file, and the act of writing is what puts the corpus and the substance into active reasoning instead of letting either sit in context as passive reference.
 
@@ -236,9 +240,9 @@ Under `runtime/` and `scripts/`. Regenerated automatically when the protocol det
 
 | File                        | Lifetime                    | Regen trigger                            |
 | --------------------------- | --------------------------- | ---------------------------------------- |
-| `runtime/voice_model.md`    | Persists across invocations | Edit any corpus file or `annotations.md` |
-| `runtime/corpus_notes.md`   | Persists across invocations | Same as above                            |
-| `scripts/corpus_stats.json` | Persists across invocations | Edit any corpus file (mtime check)       |
+| `runtime/voice_model.md`    | Shared across sessions | Edit any corpus file or `annotations.md` |
+| `runtime/corpus_notes.md`   | Shared across sessions | Same as above                            |
+| `scripts/corpus_stats.json` | Shared across sessions | Edit any corpus file (mtime check)       |
 
 The first line of `voice_model.md` stamps the corpus hash. `check_baseline.py` reads that line on every invocation and compares it against the current hash of `corpus/*.md` + `annotations.md`. If the hashes diverge, the protocol rebuilds the cached layer in steps 2–3 before continuing.
 
@@ -246,14 +250,15 @@ I don't trigger this manually. Edit a corpus file or annotations, run any voice 
 
 ### Per-invocation artifacts
 
-Under `runtime/`. Overwritten on every draft, regardless of whether the cached layer rebuilt:
+Under `runtime/sessions/<session-id>/` (`$SESSION_DIR`). Overwritten on every draft within the same session:
 
-| File                    | What it is                                                                                              |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| `runtime/topic.md`      | Topic + goal + closest-shape corpus pieces for this draft                                               |
-| `runtime/engagement.md` | 5–7 specific moves committed for this draft                                                             |
-| `runtime/ideas.md`      | Flat list of core ideas extracted from the input. Only created when rewriting; the input is never reopened after this file is written. |
-| `runtime/critique.md`   | In-voice critique of the first draft, citing what fails and why                                         |
+| File                         | What it is                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `$SESSION_DIR/topic.md`      | Topic + goal + closest-shape corpus pieces for this draft                                               |
+| `$SESSION_DIR/engagement.md` | 5–7 specific moves committed for this draft                                                             |
+| `$SESSION_DIR/ideas.md`      | Flat list of core ideas extracted from the input. Only created when rewriting; the input is never reopened after this file is written. |
+| `$SESSION_DIR/critique.md`   | In-voice critique of the first draft, citing what fails and why                                         |
+| `$SESSION_DIR/draft.md`      | Scratch draft for the critique + safety-net loop                                                        |
 
 These exist for one reason: cognitive forcing. Reading the corpus is passive. Writing these files is active. The active engagement is what biases generation toward the writer-model instead of toward pretraining priors. They are visible by design — inspect them when a draft misses voice; the failure usually shows up in `engagement.md` or `critique.md` first.
 

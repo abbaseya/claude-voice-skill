@@ -17,11 +17,15 @@ Do every step in order. Do not skip steps because the topic seems simple, the dr
 
 ### 0. Setup
 
-Ensure the runtime directory exists:
+This run's per-invocation artifacts live in a **session-scoped** subdirectory so that concurrent sessions don't clobber each other's draft prep. Resolve (and create) it:
 
 ```
-mkdir -p ~/.claude/skills/my-voice/runtime
+python3 ~/.claude/skills/my-voice/scripts/session_runtime.py
 ```
+
+It prints the absolute path of THIS session's runtime dir — e.g. `~/.claude/skills/my-voice/runtime/sessions/<session-id>/`. Call that path **`$SESSION_DIR`** and use it for every per-invocation artifact below (`topic.md`, `engagement.md`, `ideas.md`, `critique.md`, `draft.md`).
+
+The shared corpus cache — `runtime/voice_model.md` and `runtime/corpus_notes.md` — stays at the `runtime/` root (keyed by corpus hash, identical across sessions). Do not move it under `$SESSION_DIR`.
 
 ### 1. Baseline check
 
@@ -79,17 +83,17 @@ Read `annotations.md` and `anti-corpus.md` end to end. They calibrate the writer
 
 ### 5. Topic intake
 
-Write `runtime/topic.md` with two short sections:
+Write `$SESSION_DIR/topic.md` with two short sections:
 - **Topic and goal:** one sentence.
 - **Closest-shape corpus pieces:** name 2–3 corpus pieces that match the **shape** (length, register, structure) of what's about to be written — not the topic. State why each was picked.
 
 ### 6. Engagement note
 
-Write `runtime/engagement.md`. List 5–7 specific moves drawn from `runtime/voice_model.md` that I commit to applying in this draft. Each move ties to a section of the voice model. This is the bridge that puts the writer-model into active reasoning before drafting begins.
+Write `$SESSION_DIR/engagement.md`. List 5–7 specific moves drawn from `runtime/voice_model.md` that I commit to applying in this draft. Each move ties to a section of the voice model. This is the bridge that puts the writer-model into active reasoning before drafting begins.
 
 ### 7. Abstract the input to ideas (only when rewriting a provided input)
 
-If the task is to rewrite an existing draft (input file provided), read the input file **once** and write `runtime/ideas.md` as a **flat unordered list of the core ideas** the input conveys. No structure preserved. No section labels copied. No paragraph order copied. No bullet count preserved. Just the substantive points, each as a single bullet, in whatever order makes sense to me reading them fresh.
+If the task is to rewrite an existing draft (input file provided), read the input file **once** and write `$SESSION_DIR/ideas.md` as a **flat unordered list of the core ideas** the input conveys. No structure preserved. No section labels copied. No paragraph order copied. No bullet count preserved. Just the substantive points, each as a single bullet, in whatever order makes sense to me reading them fresh.
 
 After writing `ideas.md`, **do not read the input file again**. This is a hard rule. The input's structural shape is a stronger pull on generation than the writer-model, and the only way to break that pull is to forget the input and rebuild from `ideas.md` + `voice_model.md` from scratch.
 
@@ -97,10 +101,10 @@ If the task is to write a fresh piece (no input), skip this step — my `topic.m
 
 ### 8. Draft
 
-Write the draft. Primary references, in order:
+Write the draft to `$SESSION_DIR/draft.md`. Primary references, in order:
 1. `runtime/voice_model.md` — the inhabited writer-model. **The structural shape of the draft comes from here, not from the input.**
-2. `runtime/engagement.md` — the moves committed for this specific draft.
-3. `runtime/ideas.md` (if rewriting) or `runtime/topic.md` (if fresh) — the substance.
+2. `$SESSION_DIR/engagement.md` — the moves committed for this specific draft.
+3. `$SESSION_DIR/ideas.md` (if rewriting) or `$SESSION_DIR/topic.md` (if fresh) — the substance.
 4. `anti-corpus.md` — patterns to avoid.
 5. The corpus itself, only when sampling specific phrasings.
 
@@ -108,7 +112,7 @@ Do **not** open the input file again during drafting (if rewriting). Do **not** 
 
 ### 9. In-voice critique
 
-Write `runtime/critique.md`. Re-read the draft as the writer. Strike the 3 worst sentences and explain why each one fails, citing `voice_model.md` or `anti-corpus.md`. Be brutal. If I cannot honestly find 3 sentences that sound like Claude pretending to be the writer, I didn't critique honestly — try again with sharper eyes.
+Write `$SESSION_DIR/critique.md`. Re-read the draft as the writer. Strike the 3 worst sentences and explain why each one fails, citing `voice_model.md` or `anti-corpus.md`. Be brutal. If I cannot honestly find 3 sentences that sound like Claude pretending to be the writer, I didn't critique honestly — try again with sharper eyes.
 
 ### 10. Revise
 
@@ -119,7 +123,7 @@ Apply the critique. Rewrite the struck sentences. Keep revising until the draft 
 Run:
 
 ```
-python3 ~/.claude/skills/my-voice/scripts/safety_net.py <path-to-draft.md> [--input <path-to-input.md>]
+python3 ~/.claude/skills/my-voice/scripts/safety_net.py "$SESSION_DIR/draft.md" [--input <path-to-input.md>]
 ```
 
 Pass `--input` when rewriting an existing draft. The script then runs both:
@@ -159,10 +163,15 @@ Add the failure to `anti-corpus.md` with a 2-sentence diagnosis. The next invoca
 
 ## Runtime artifacts
 
-The `runtime/` directory contains the cognitive-forcing artifacts:
+The `runtime/` directory contains the cognitive-forcing artifacts, split into a shared layer and a per-session layer:
+
+**Shared across sessions** — corpus-derived, keyed by corpus hash, identical for every session on the same corpus. Live at the `runtime/` root:
 
 - `voice_model.md` — the inhabited writer-model. Cached; regenerated when corpus changes.
 - `corpus_notes.md` — per-piece reading notes. Regenerated when corpus changes.
-- `topic.md`, `engagement.md`, `ideas.md`, `critique.md` — per-invocation. Overwritten each run. (`ideas.md` only exists when rewriting an input.)
+
+**Per session** — under `runtime/sessions/<session-id>/` (`$SESSION_DIR`, resolved by `scripts/session_runtime.py` in step 0), so concurrent sessions don't clobber each other:
+
+- `topic.md`, `engagement.md`, `ideas.md`, `critique.md`, `draft.md` — per-invocation. Overwritten on each run within the same session. (`ideas.md` only exists when rewriting an input.)
 
 These artifacts are visible by design. Inspect them if a draft misses voice — the failure usually shows up in `voice_model.md` or `engagement.md` first.
