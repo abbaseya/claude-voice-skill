@@ -30,7 +30,15 @@ from typing import Dict, List, Optional, Tuple
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 CORPUS_DIR = SKILL_DIR / "corpus"
+HARD_RULES = SKILL_DIR / "hard-rules.md"
 STATS_CACHE = Path(__file__).resolve().parent / "corpus_stats.json"
+
+# Marker that delimits the machine-checked section of hard-rules.md.
+HARD_RULES_BLOCK = re.compile(
+    r"<!--\s*machine-checked-rules:start\s*-->(.*?)<!--\s*machine-checked-rules:end\s*-->",
+    re.DOTALL,
+)
+HARD_RULE_ROW = re.compile(r"^\s*-\s*`([^`]+)`\s*(.*)$")
 
 # Common contractions. Lowercased.
 CONTRACTIONS = {
@@ -306,6 +314,35 @@ def structural_drift(input_path: Path, draft_path: Path) -> List[str]:
     return violations
 
 
+def load_hard_rule_patterns() -> List[Tuple[str, str]]:
+    """
+    Load the user's machine-checked hard rules from hard-rules.md.
+
+    Parses the section between the <!-- machine-checked-rules:start/end --> markers.
+    Each row is `- `<regex>` <message>`. Returns (pattern, message) pairs, prefixed
+    so violations read as 'hard-rule: ...'. A row whose regex won't compile is skipped
+    (the file is user-authored). Returns [] when the file or the markers are absent.
+    """
+    if not HARD_RULES.exists():
+        return []
+    block = HARD_RULES_BLOCK.search(HARD_RULES.read_text())
+    if not block:
+        return []
+    rules: List[Tuple[str, str]] = []
+    for line in block.group(1).splitlines():
+        m = HARD_RULE_ROW.match(line)
+        if not m:
+            continue
+        pattern = m.group(1)
+        message = m.group(2).strip().lstrip("-—:.").strip() or "hard-rule pattern matched"
+        try:
+            re.compile(pattern)
+        except re.error:
+            continue
+        rules.append((pattern, "hard-rule: " + message))
+    return rules
+
+
 def check(draft_path: Path, input_path: Optional[Path] = None) -> List[str]:
     text = draft_path.read_text()
     violations: List[str] = []
@@ -314,10 +351,11 @@ def check(draft_path: Path, input_path: Optional[Path] = None) -> List[str]:
     if input_path is not None:
         violations.extend(structural_drift(input_path, draft_path))
 
-    # Anti-tic pattern matches (run on every draft, regardless of length)
-    for pattern, msg in ANTI_TIC_PATTERNS:
+    # Anti-tic patterns (built-in, persona-neutral) + the user's machine-checked
+    # hard rules loaded from hard-rules.md. Run on every draft, regardless of length.
+    for pattern, msg in ANTI_TIC_PATTERNS + load_hard_rule_patterns():
         if re.search(pattern, text, re.IGNORECASE | re.MULTILINE):
-            violations.append("anti-tic: " + msg)
+            violations.append(msg if msg.startswith("hard-rule:") else "anti-tic: " + msg)
 
     wc = word_count(text)
     if wc < MIN_WORDS_FOR_STATS:

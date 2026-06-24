@@ -5,7 +5,7 @@ description: Use when drafting any first-person content in my voice — LinkedIn
 
 # My voice
 
-This skill produces drafts in my voice by forcing the model — at every invocation — to **inhabit me as a writer** before drafting, draft from inside that inhabitation, and critique the draft as I would. The corpus is the source. Annotations and anti-corpus calibrate. The protocol is the forcing function: it makes the inhabitation cheap to do and expensive to skip.
+This skill produces drafts in my voice by forcing the model — at every invocation — to **inhabit me as a writer** before drafting, draft from inside that inhabitation, and critique the draft as I would. The corpus is the source. Annotations and anti-corpus calibrate. Hard rules (`hard-rules.md`) are absolute — they override the writer-model and the corpus whenever they conflict. The protocol is the forcing function: it makes the inhabitation cheap to do and expensive to skip.
 
 The mechanism has a known structural ceiling around 85% voice match — text-only context conditioning cannot exceed that without weight-level fine-tuning. The last 10–15% is my editing pass.
 
@@ -77,9 +77,11 @@ Required sections, each with corpus citations by filename:
 
 Each claim cites at least one corpus piece by filename.
 
-### 4. Read the calibrators
+### 4. Read the calibrators and hard rules
 
 Read `annotations.md` and `anti-corpus.md` end to end. They calibrate the writer-model — they do not replace it. Do not draft directly from annotations as a checklist; that produces typographic substitution rather than voice.
+
+Then read `hard-rules.md` if it exists. **Hard rules are not calibrators.** Annotations and anti-corpus are soft signals that shaped the writer-model; hard rules are absolute do/don't constraints the writer has set, and they override the writer-model and the corpus whenever they conflict — even if the corpus shows the writer occasionally breaking one. Apply every hard rule as a gate at draft time (step 8) and re-check the draft against each one at critique time (step 9). The machine-checked subset (the rows inside the `machine-checked-rules` markers) is additionally enforced by the safety net in step 11. `hard-rules.md` is read fresh on every run and is not part of the cached writer-model, so editing it takes effect immediately with no regeneration.
 
 ### 5. Topic intake
 
@@ -105,14 +107,15 @@ Write the draft to `$SESSION_DIR/draft.md`. Primary references, in order:
 1. `runtime/voice_model.md` — the inhabited writer-model. **The structural shape of the draft comes from here, not from the input.**
 2. `$SESSION_DIR/engagement.md` — the moves committed for this specific draft.
 3. `$SESSION_DIR/ideas.md` (if rewriting) or `$SESSION_DIR/topic.md` (if fresh) — the substance.
-4. `anti-corpus.md` — patterns to avoid.
-5. The corpus itself, only when sampling specific phrasings.
+4. `hard-rules.md` — absolute do/don't constraints. These override 1–3 on any conflict.
+5. `anti-corpus.md` — patterns to avoid.
+6. The corpus itself, only when sampling specific phrasings.
 
-Do **not** open the input file again during drafting (if rewriting). Do **not** consult `annotations.md` directly while drafting. The voice model already incorporated annotations; reopening either of those files reintroduces the structural mimicry or checklist-application failure modes.
+Do **not** open the input file again during drafting (if rewriting). Do **not** consult `annotations.md` directly while drafting. The voice model already incorporated annotations; reopening either of those files reintroduces the structural mimicry or checklist-application failure modes. Hard rules are the exception: apply every rule in `hard-rules.md`, and when a hard rule conflicts with an observed corpus habit, the hard rule wins.
 
 ### 9. In-voice critique
 
-Write `$SESSION_DIR/critique.md`. Re-read the draft as the writer. Strike the 3 worst sentences and explain why each one fails, citing `voice_model.md` or `anti-corpus.md`. Be brutal. If I cannot honestly find 3 sentences that sound like Claude pretending to be the writer, I didn't critique honestly — try again with sharper eyes.
+Write `$SESSION_DIR/critique.md`. Re-read the draft as the writer. Strike the 3 worst sentences and explain why each one fails, citing `voice_model.md` or `anti-corpus.md`. Be brutal. If I cannot honestly find 3 sentences that sound like Claude pretending to be the writer, I didn't critique honestly — try again with sharper eyes. Also check the draft against every rule in `hard-rules.md`: a hard-rule violation is an automatic strike regardless of how the sentence otherwise reads.
 
 ### 10. Revise
 
@@ -127,7 +130,7 @@ python3 ~/.claude/skills/my-voice/scripts/safety_net.py "$SESSION_DIR/draft.md" 
 ```
 
 Pass `--input` when rewriting an existing draft. The script then runs both:
-- Typography checks (contractions, headings, list density, paragraph variance, anti-tic patterns).
+- Typography checks (contractions, headings, list density, paragraph variance, anti-tic patterns). It also loads the machine-checked patterns from `hard-rules.md` and flags any match, so mechanically-expressible hard rules are caught here too.
 - A **structural drift check**: compares section labels, list shape, and paragraph counts between input and draft. Flags when the draft's structure too closely mirrors the input — the failure mode where voice gets applied as a coat of paint over a preserved input skeleton.
 
 When fresh-drafting (no input), call without `--input`.

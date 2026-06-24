@@ -82,17 +82,18 @@ This is what a context-conditioned skill produces — a forced simulation of the
 
 The intuitive alternative is fine-tuning a local open-source model on the same corpus. I tried this end-to-end. At ~100 paired examples, on a 7B base, across six runs spanning four training paradigms — basic SFT, structurally-distinct generics, two-stage continued-pretrain, two flavors of DPO — every variant produced drafts that were measurably worse than what this skill produces. The protocol approach wins at small-data scale, not the other way around.
 
-## The four-part skill
+## The five-part skill
 
 ```
 ~/.claude/skills/my-voice/
 ├── SKILL.md                    # the strict protocol
 ├── annotations.md              # my own observations about how I write
 ├── anti-corpus.md              # examples of off-voice writing with diagnoses
+├── hard-rules.md               # absolute do/don't constraints (override everything)
 ├── corpus/                     # 8–15 unedited writing samples
 ├── scripts/
 │   ├── check_baseline.py       # gates the protocol; hashes corpus + annotations
-│   ├── safety_net.py           # post-draft mechanical typography check
+│   ├── safety_net.py           # post-draft mechanical typography check + machine-checked hard rules
 │   └── session_runtime.py      # resolves this session's per-session runtime dir
 └── runtime/                    # generated artifacts (regenerated as needed)
     ├── voice_model.md          # SHARED across sessions — the inhabited writer-model (corpus-derived)
@@ -128,6 +129,12 @@ Examples of writing that sounds like me on the surface but isn't, each with a 2-
 
 Anti-corpus teaches the _boundary_ of my voice, not just the center. The corpus shows the destination; the anti-corpus shows where the cliff is.
 
+### `hard-rules.md` — the absolutes
+
+Everything above is _soft_. The corpus is a source the writer-model is triangulated from; annotations and anti-corpus calibrate that model. `hard-rules.md` is different: it is a list of absolute do/don't constraints that **override the writer-model and the corpus whenever they conflict** — even if the corpus shows me breaking one occasionally. "Never use em dashes" belongs here, not in annotations, because it must hold every time rather than nudge a probability.
+
+Two kinds of rules live in the file. **Judgment rules** are prose do/don't lines the model reads at draft time and re-checks at critique time. **Machine-checked rules** sit inside `<!-- machine-checked-rules:start/end -->` markers as `` - `<regex>` <message> `` rows; `safety_net.py` parses that section, compiles each regex, and flags any match. Unlike the corpus, `hard-rules.md` is read fresh on every run and is _not_ hashed into the cached writer-model, so editing it takes effect immediately with no regeneration.
+
 ### `SKILL.md` — the protocol
 
 This is the load-bearing piece, and it must be a strict ordered protocol — not a description, not a request. Each step must produce a written artifact in `runtime/` so the cognitive engagement is visible and verifiable, not assumed.
@@ -138,7 +145,7 @@ The 12-step protocol:
 2. **Baseline check.** Run `scripts/check_baseline.py`. If `BASELINE_OK`, skip to step 4. If `REGENERATE`, continue.
 3. **Per-piece corpus reading.** Read every file in `corpus/` _one at a time_, no batching. For each file write a section in `runtime/corpus_notes.md` with a one-sentence summary plus 3–5 specific moves I make in that piece, with **quoted excerpts from the piece**. Quotes are non-optional — they are the proof the model actually read the piece rather than skimmed it.
 4. **Synthesize the writer-model.** Build `runtime/voice_model.md`. First line stamps the corpus hash. Required sections, each with corpus citations: _opening moves, transition vocabulary, paragraph and sentence rhythm, what the writer reaches for, what the writer avoids, handling uncertainty, handling praise, handling criticism, closings_. This is the inhabited writer-model — the structured analysis of me-as-writer, computed from the corpus, written down so it lives in active reasoning when drafting begins.
-5. **Read the calibrators.** `annotations.md` end to end, then `anti-corpus.md` end to end. They calibrate the writer-model — they do not replace it.
+5. **Read the calibrators and hard rules.** `annotations.md` end to end, then `anti-corpus.md` end to end — they calibrate the writer-model, they do not replace it. Then `hard-rules.md`: absolute do/don't constraints that override the writer-model and the corpus on any conflict, applied at draft time and re-checked at critique.
 6. **Topic intake.** Write `$SESSION_DIR/topic.md`: one-sentence topic + goal, plus the 2–3 corpus pieces closest in _shape_ (not topic) to what's being written.
 7. **Engagement note.** Write `$SESSION_DIR/engagement.md` — 5–7 specific moves drawn from `voice_model.md` that I commit to applying in this draft. This is the bridge that puts the writer-model into active reasoning before the first sentence is written.
 8. **Abstract input to ideas** _(only when rewriting a provided input)_. Read the input file **once** and write `$SESSION_DIR/ideas.md` as a flat unordered list of the core ideas — no structure preserved, no section labels copied, no paragraph order copied, no bullet count preserved. After this step, **do not read the input file again**. The input's structural shape is a stronger pull on generation than the writer-model; the only way to break that pull is to forget the input and rebuild from `ideas.md` + `voice_model.md` from scratch.
@@ -231,6 +238,7 @@ Under `~/.claude/skills/my-voice/`:
 | `corpus/*.md`               | 8–15 unedited writing samples                    |
 | `annotations.md`            | My own observations about how I write        |
 | `anti-corpus.md`            | Off-voice examples + diagnoses (grows over time) |
+| `hard-rules.md`             | Absolute do/don't constraints (override everything) |
 | `scripts/check_baseline.py` | Hash gate that decides cache vs regenerate       |
 | `scripts/safety_net.py`     | Deterministic typography backstop                |
 
