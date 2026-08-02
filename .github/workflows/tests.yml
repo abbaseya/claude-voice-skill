@@ -1,0 +1,81 @@
+name: Tests
+
+# Everything lands through a pull request, so these run before anything reaches main.
+#
+# All of it blocks. This repo is new and has no pre-existing debt to grandfather,
+# which is the only honest reason to make a gate report-only. The moment a check
+# fails for reasons nobody caused, people start ignoring it — so if something here
+# becomes noisy, fix the check or delete it rather than downgrade it to a warning.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests, leak gate and conformance
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Two platforms because path handling is where this class of tool breaks.
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # Standard library only, on purpose: a note-taking tool that needs a
+      # dependency tree is a tool that breaks when the tree moves.
+      - name: Confirm there are no third-party runtime dependencies
+        run: |
+          set -euo pipefail
+          if ls requirements*.txt pyproject.toml setup.py 2>/dev/null | grep -q .; then
+            echo "Unexpected dependency manifest — this plugin is stdlib-only." >&2
+            exit 1
+          fi
+          echo "stdlib only"
+
+      - name: Full suite
+        run: bash bin/run-tests.sh
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install ruff
+        run: python -m pip install --quiet ruff
+      - name: ruff
+        run: ruff check .
+      - name: shellcheck
+        run: |
+          set -euo pipefail
+          mapfile -t scripts < <(git ls-files '*.sh')
+          if [ ${#scripts[@]} -eq 0 ]; then echo "no shell scripts"; exit 0; fi
+          shellcheck "${scripts[@]}"
+
+  json:
+    name: Manifests parse
+    runs-on: ubuntu-latest
+    # A malformed plugin.json or hooks.json does not fail for the author — it
+    # fails silently for whoever installs it, with the plugin simply not loading.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: |
+          set -euo pipefail
+          for f in .claude-plugin/plugin.json; do
+            python -c "import json,sys; json.load(open('$f')); print('ok  $f')"
+          done

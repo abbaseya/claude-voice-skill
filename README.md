@@ -84,20 +84,32 @@ The intuitive alternative is fine-tuning a local open-source model on the same c
 
 ## The five-part skill
 
+**The plugin and your writing live in different places, deliberately.** The plugin
+directory is replaced wholesale on every update. Anything of mine stored inside it
+would be deleted the first time I update — corpus, annotations, years of accumulated
+anti-corpus, gone silently. So:
+
 ```
-~/.claude/skills/my-voice/
-├── SKILL.md                    # the strict protocol
+<plugin>/                       # ours. replaced on every update.
+├── skills/
+│   ├── draft/SKILL.md          # the strict protocol      → /my-voice:draft
+│   └── setup/SKILL.md          # first-run walkthrough    → /my-voice:setup
+├── scripts/
+│   ├── paths.py                # resolves plugin-vs-data, migrates old installs
+│   ├── check_baseline.py       # gates the protocol; hashes corpus + annotations
+│   ├── safety_net.py           # post-draft typography check + machine-checked hard rules
+│   └── session_runtime.py      # resolves this session's per-session runtime dir
+└── templates/                  # starter files, copied into your data dir by setup
+
+~/.claude/my-voice/             # YOURS. never touched by an update.
 ├── annotations.md              # my own observations about how I write
 ├── anti-corpus.md              # examples of off-voice writing with diagnoses
 ├── hard-rules.md               # absolute do/don't constraints (override everything)
 ├── corpus/                     # 8–15 unedited writing samples
-├── scripts/
-│   ├── check_baseline.py       # gates the protocol; hashes corpus + annotations
-│   ├── safety_net.py           # post-draft mechanical typography check + machine-checked hard rules
-│   └── session_runtime.py      # resolves this session's per-session runtime dir
 └── runtime/                    # generated artifacts (regenerated as needed)
-    ├── voice_model.md          # SHARED across sessions — the inhabited writer-model (corpus-derived)
+    ├── voice_model.md          # SHARED across sessions — the inhabited writer-model
     ├── corpus_notes.md         # SHARED across sessions — per-piece reading notes
+    ├── corpus_stats.json       # SHARED — cached corpus statistics
     └── sessions/
         └── <session-id>/       # per-session, isolated (keyed off $CLAUDE_CODE_SESSION_ID)
             ├── topic.md        # per-invocation topic intake
@@ -106,6 +118,9 @@ The intuitive alternative is fine-tuning a local open-source model on the same c
             ├── critique.md     # per-invocation in-voice critique of own draft
             └── draft.md        # per-invocation scratch draft
 ```
+
+Set `MY_VOICE_HOME` to put your writing somewhere else — a synced folder, say.
+`python3 scripts/paths.py` prints wherever it resolved to.
 
 Each piece does different work.
 
@@ -230,27 +245,27 @@ Uncolored steps are reads or script calls.
 
 ### Inputs I set up once
 
-Under `~/.claude/skills/my-voice/`:
+Under `~/.claude/my-voice/` — mine, and never touched by a plugin update:
 
 | File                        | Purpose                                          |
 | --------------------------- | ------------------------------------------------ |
-| `SKILL.md`                  | The protocol itself                              |
 | `corpus/*.md`               | 8–15 unedited writing samples                    |
 | `annotations.md`            | My own observations about how I write        |
 | `anti-corpus.md`            | Off-voice examples + diagnoses (grows over time) |
 | `hard-rules.md`             | Absolute do/don't constraints (override everything) |
-| `scripts/check_baseline.py` | Hash gate that decides cache vs regenerate       |
-| `scripts/safety_net.py`     | Deterministic typography backstop                |
+
+`/my-voice:setup` creates that folder and copies starter versions of the three
+markdown files into it. The corpus is mine to fill.
 
 ### Cached artifacts
 
-Under `runtime/` and `scripts/`. Regenerated automatically when the protocol detects a hash or mtime mismatch:
+Under `~/.claude/my-voice/runtime/`. Regenerated automatically when the protocol detects a hash or mtime mismatch:
 
 | File                        | Lifetime                    | Regen trigger                            |
 | --------------------------- | --------------------------- | ---------------------------------------- |
 | `runtime/voice_model.md`    | Shared across sessions | Edit any corpus file or `annotations.md` |
 | `runtime/corpus_notes.md`   | Shared across sessions | Same as above                            |
-| `scripts/corpus_stats.json` | Shared across sessions | Edit any corpus file (mtime check)       |
+| `runtime/corpus_stats.json` | Shared across sessions | Edit any corpus file (mtime check)       |
 
 The first line of `voice_model.md` stamps the corpus hash. `check_baseline.py` reads that line on every invocation and compares it against the current hash of `corpus/*.md` + `annotations.md`. If the hashes diverge, the protocol rebuilds the cached layer in steps 2–3 before continuing.
 
@@ -296,7 +311,7 @@ I probably have more material than I think:
 Aim for variety: long-form, short-form, technical, persuasive, explanatory, opinionated. Don't polish. The unedited version teaches better than the polished one.
 
 ```bash
-mkdir -p ~/.claude/skills/my-voice/corpus
+mkdir -p ~/.claude/my-voice/corpus
 # Copy in 8–15 .md files of my real writing.
 # Don't curate hard — first drafts are valuable.
 ```
@@ -307,12 +322,35 @@ mkdir -p ~/.claude/skills/my-voice/corpus
 
 **The skill keeps growing.** My voice now isn't my voice in two years. Add new pieces every few months — especially anything that landed well, or anything where I noticed myself writing differently than usual. Treat the skill as a living artifact, not a one-time setup. Every off-voice draft the skill produces is a sharpening opportunity for `anti-corpus.md` and `ANTI_TIC_PATTERNS`.
 
+## Install
+
+```
+/plugin marketplace add abbaseya/claude-plugins
+/plugin install my-voice@abbaseya
+```
+
+Then `/my-voice:setup`, which creates `~/.claude/my-voice/`, copies in the starter
+files, and walks through what to put where.
+
+### Already using this as a plain skill?
+
+If it was installed the old way — the repo copied into `~/.claude/skills/my-voice/`
+with the corpus inside it — **the plugin finds that and brings the writing across on
+its first run.** Corpus, annotations, anti-corpus, hard rules and the runtime cache all
+move to `~/.claude/my-voice/`.
+
+It **copies rather than moves**, and never overwrites. The originals stay exactly where
+they are; a corpus is often the only surviving copy of a piece of writing, and a tool
+that relocates it unwatched has no way to be sorry. Once the drafts still sound right,
+delete `~/.claude/skills/my-voice/` by hand — and do delete it, or two copies of the
+skill will be registered at once.
+
 ## TL;DR for setup
 
-1. Spend 30 minutes copying 8–15 real writing samples into `corpus/`. Don't curate.
-2. Spend 60 minutes writing `annotations.md`. Read three of my own pieces and notice patterns. Falsifiable observations only.
-3. Spend 20 minutes writing `anti-corpus.md` — three off-voice examples with two-sentence diagnoses each.
-4. Drop in the two scripts (`check_baseline.py`, `safety_net.py`) and the strict-protocol `SKILL.md`.
+1. Install the plugin and run `/my-voice:setup`.
+2. Spend 30 minutes copying 8–15 real writing samples into `corpus/`. Don't curate.
+3. Spend 60 minutes writing `annotations.md`. Read three of my own pieces and notice patterns. Falsifiable observations only.
+4. Spend 20 minutes writing `anti-corpus.md` — three off-voice examples with two-sentence diagnoses each.
 5. Run a real draft. Compare to what I'd write myself. Note specific things that miss. Add those to `anti-corpus.md` and extend `ANTI_TIC_PATTERNS` in the safety net.
 
 The whole thing is maybe two hours of work for an artifact I'll use for years across every command and every piece of first-person writing. The skill gets sharper every time I correct it.
@@ -324,3 +362,23 @@ rewrite <PATH_TO_INPUT_FILE> in my voice into <PATH_TO_OUTPUT_FILE>
 ```
 
 That's it. The protocol does the rest. Edit the last 10–15% myself.
+
+## Development
+
+```bash
+bash bin/run-tests.sh     # leak gate, corpus-not-shipped check, 35 tests
+ruff check .
+```
+
+CI runs the same script on every pull request, on Ubuntu and macOS. Nothing is pushed
+to `main` directly.
+
+The suite is built around the two guarantees that matter: **nothing a user owns is
+stored inside the plugin** (an update would delete it), and **a pre-plugin install is
+migrated by copy with the originals untouched**. Plus the baseline gate forcing a
+rebuild when the corpus changes, the coverage gate rejecting notes without verbatim
+quotes, and the safety net catching an expanded-contractions draft.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

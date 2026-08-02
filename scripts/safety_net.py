@@ -28,10 +28,15 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-SKILL_DIR = Path(__file__).resolve().parent.parent
-CORPUS_DIR = SKILL_DIR / "corpus"
-HARD_RULES = SKILL_DIR / "hard-rules.md"
-STATS_CACHE = Path(__file__).resolve().parent / "corpus_stats.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths  # noqa: E402
+
+# Your corpus and rules live outside the plugin so an update cannot delete them.
+CORPUS_DIR = paths.corpus_dir()
+HARD_RULES = paths.hard_rules()
+# The stats cache is derived from the corpus, so it belongs beside the corpus —
+# in the plugin it would be silently discarded on every update.
+STATS_CACHE = paths.stats_cache()
 
 # Marker that delimits the machine-checked section of hard-rules.md.
 HARD_RULES_BLOCK = re.compile(
