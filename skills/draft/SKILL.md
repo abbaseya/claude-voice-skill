@@ -1,5 +1,5 @@
 ---
-name: my-voice
+name: draft
 description: Use when drafting any first-person content in my voice — LinkedIn posts, articles, blog drafts, announcements, customer-facing writeups. Forces an ordered protocol that builds an internal model of me-as-writer from the corpus and drafts from inside that model. Compose with topic-specific skills for grounding.
 ---
 
@@ -8,6 +8,10 @@ description: Use when drafting any first-person content in my voice — LinkedIn
 This skill produces drafts in my voice by forcing the model — at every invocation — to **inhabit me as a writer** before drafting, draft from inside that inhabitation, and critique the draft as I would. The corpus is the source. Annotations and anti-corpus calibrate. Hard rules (`hard-rules.md`) are absolute — they override the writer-model and the corpus whenever they conflict. The protocol is the forcing function: it makes the inhabitation cheap to do and expensive to skip.
 
 The mechanism has a known structural ceiling around 85% voice match — text-only context conditioning cannot exceed that without weight-level fine-tuning. The last 10–15% is my editing pass.
+
+**Where the inputs live.** Throughout this protocol, **`VOICE`** = `~/.claude/my-voice/` (or `$MY_VOICE_HOME` if set). The corpus (`corpus/`), `annotations.md`, `anti-corpus.md`, `hard-rules.md` and the generated `runtime/` cache all live under `VOICE` — every bare `corpus/`, `runtime/…`, `annotations.md`, `anti-corpus.md` and `hard-rules.md` reference below means `VOICE/…`. They live **outside the plugin on purpose**: the plugin directory is replaced on every update, and anything of mine stored inside it would be deleted. Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/paths.py"` to print the resolved locations.
+
+**Precondition — no corpus, no voice draft.** If step 1 prints `NO_CORPUS`, **do not run this protocol and do not fabricate a voice.** Say: *"No writing samples are configured, so I can't voice-match. Run `/my-voice:setup` and add 8–15 pieces of your own writing, then ask again — for now I'll draft normally."* Then write an ordinary draft without the protocol. A skill that invents a voice it was never given is worse than one that admits it cannot.
 
 ---
 
@@ -20,10 +24,10 @@ Do every step in order. Do not skip steps because the topic seems simple, the dr
 This run's per-invocation artifacts live in a **session-scoped** subdirectory so that concurrent sessions don't clobber each other's draft prep. Resolve (and create) it:
 
 ```
-python3 ~/.claude/skills/my-voice/scripts/session_runtime.py
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/session_runtime.py"
 ```
 
-It prints the absolute path of THIS session's runtime dir — e.g. `~/.claude/skills/my-voice/runtime/sessions/<session-id>/`. Call that path **`$SESSION_DIR`** and use it for every per-invocation artifact below (`topic.md`, `engagement.md`, `ideas.md`, `critique.md`, `draft.md`).
+It prints the absolute path of THIS session's runtime dir — e.g. `~/.claude/my-voice/runtime/sessions/<session-id>/`. Call that path **`$SESSION_DIR`** and use it for every per-invocation artifact below (`topic.md`, `engagement.md`, `ideas.md`, `critique.md`, `draft.md`).
 
 The shared corpus cache — `runtime/voice_model.md` and `runtime/corpus_notes.md` — stays at the `runtime/` root (keyed by corpus hash, identical across sessions). Do not move it under `$SESSION_DIR`.
 
@@ -32,9 +36,11 @@ The shared corpus cache — `runtime/voice_model.md` and `runtime/corpus_notes.m
 Run:
 
 ```
-python3 ~/.claude/skills/my-voice/scripts/check_baseline.py
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_baseline.py"
 ```
 
+- If output starts with `NO_CORPUS`: **stop the protocol** — see the precondition above. Draft normally and tell the user how to add a corpus.
+- If output starts with `MIGRATED`: a pre-plugin install was found and the writing was copied across. Relay those lines to the user verbatim, then carry on with whatever the output says next.
 - If output starts with `BASELINE_OK`: skip to step 4 (the writer-model is current).
 - If output starts with `REGENERATE`: continue with steps 2–3 to rebuild the writer-model.
 
@@ -126,7 +132,7 @@ Apply the critique. Rewrite the struck sentences. Keep revising until the draft 
 Run:
 
 ```
-python3 ~/.claude/skills/my-voice/scripts/safety_net.py "$SESSION_DIR/draft.md" [--input <path-to-input.md>]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/safety_net.py" "$SESSION_DIR/draft.md" [--input <path-to-input.md>]
 ```
 
 Pass `--input` when rewriting an existing draft. The script then runs both:

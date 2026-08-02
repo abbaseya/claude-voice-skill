@@ -19,8 +19,10 @@ import os
 import sys
 from pathlib import Path
 
-SKILL_DIR = Path(__file__).resolve().parent.parent
-SESSIONS_DIR = SKILL_DIR / "runtime" / "sessions"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths  # noqa: E402
+
+SESSIONS_DIR = paths.sessions_dir()
 
 
 def session_id() -> str:

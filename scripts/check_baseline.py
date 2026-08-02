@@ -20,11 +20,15 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-SKILL_DIR = Path(__file__).resolve().parent.parent
-CORPUS_DIR = SKILL_DIR / "corpus"
-ANNOTATIONS = SKILL_DIR / "annotations.md"
-VOICE_MODEL = SKILL_DIR / "runtime" / "voice_model.md"
-CORPUS_NOTES = SKILL_DIR / "runtime" / "corpus_notes.md"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths  # noqa: E402
+
+# Resolved lazily through paths.py: your writing lives outside the plugin, so a
+# plugin update cannot delete it. See scripts/paths.py for why.
+CORPUS_DIR = paths.corpus_dir()
+ANNOTATIONS = paths.annotations()
+VOICE_MODEL = paths.voice_model()
+CORPUS_NOTES = paths.corpus_notes()
 
 MIN_QUOTE_LEN = 15
 
@@ -138,6 +142,27 @@ def format_problem(category: str, names: list) -> str:
 
 
 def main() -> int:
+    # Anyone who installed this before it was a plugin has their writing in
+    # ~/.claude/skills/my-voice/. Bring it across on the first run rather than
+    # telling them they have no corpus while it sits there untouched.
+    brought = paths.migrate_from_legacy()
+    if brought:
+        print("MIGRATED: found a pre-plugin install and copied your writing across.")
+        print("  From: %s" % paths.LEGACY_HOME)
+        print("  To:   %s" % paths.data_home())
+        print("  Copied: %s" % ", ".join(brought))
+        print("  The originals were NOT deleted. Once you have confirmed the drafts")
+        print("  still sound like you, you can remove the old directory yourself.")
+        print()
+
+    if not paths.is_configured():
+        print("NO_CORPUS")
+        print("  No writing samples found in %s" % paths.corpus_dir())
+        print("  Run /my-voice:setup to get started, then add 8-15 pieces of your own")
+        print("  writing. Without a corpus this skill cannot match a voice, and it")
+        print("  must not pretend to.")
+        return 0
+
     current = compute_baseline_hash()
     stored = stored_hash()
 

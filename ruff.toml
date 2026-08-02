@@ -1,0 +1,31 @@
+# Lint everything, blocking. This repo is new, so there is no pre-existing debt
+# that would justify a report-only gate.
+#
+# The selected set is defect-oriented rather than cosmetic: pyflakes and
+# pycodestyle errors, warnings, import order, bugbear, pyupgrade. %-formatting is
+# the house style throughout and is not a defect, so UP031/UP032 stay off — a
+# gate that flags 131 non-problems is a gate people stop reading.
+
+line-length = 100
+target-version = "py39"
+
+exclude = ["**/__pycache__", "**/.ruff_cache"]
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "E501",   # length is a formatter concern, not a per-line failure
+    "UP031",  # %-formatting is the house style here
+    "UP032",
+]
+
+[lint.per-file-ignores]
+# E402: these run as standalone scripts out of a plugin cache directory, with no
+# package context, so they must sys.path.insert before importing their siblings.
+#
+# UP006/UP035: the protocol scripts predate this repo becoming a plugin and use
+# typing.List / typing.Dict / typing.Optional throughout. Rewriting them to PEP
+# 585 builtins is pure churn across working, tested code for no behaviour change.
+# New code in this repo uses builtins.
+"scripts/*.py" = ["E402", "UP006", "UP035"]
+"tests/*.py" = ["E402"]
