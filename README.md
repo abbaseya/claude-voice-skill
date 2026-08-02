@@ -1,5 +1,27 @@
 # How to create a Claude Skill that writes in my own voice
 
+A Claude Code plugin that drafts in **your** voice — built from your own writing, not from
+adjectives describing it.
+
+```
+/plugin marketplace add abbaseya/claude-plugins
+/plugin install my-voice@abbaseya
+```
+
+Then `/my-voice:setup` to create your writing folder, and `/my-voice:draft` to use it.
+
+> **Upgrading from the plain-skill version?** If you cloned this into
+> `~/.claude/skills/my-voice/` with your corpus inside it, the plugin finds that on its
+> first run and copies your writing to `~/.claude/my-voice/`. It copies rather than
+> moves and never overwrites — your originals stay exactly where they are. See
+> [Install](#install) for what to do afterwards.
+
+The rest of this README is the essay: why a voice skill built from a description of your
+voice does not work, and what does. If you just want it running, the two commands above
+are the whole install.
+
+---
+
 ## The wrong way (and why it's tempting)
 
 The intuitive approach: write a skill called `my-voice` that says things like _"My style is direct, technical, has a POV, uses backticks, dislikes corporate language."_ A list of adjectives and tendencies.
