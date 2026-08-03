@@ -1,22 +1,36 @@
 <!--
-This file is YOUR observations about how YOU write. Replace everything below the line with my own annotations.
+This file is YOUR observations about how YOU write. Replace everything below the
+line with your own.
 
-Rules of thumb:
-- Falsifiable observations, not adjectives. "I open with the shortest version of my claim" is good. "I am direct" is useless.
-- Each line should be something I could verify by reading a sample of my own writing.
-- Aim for 10–20 lines. More than 30 starts to dilute.
-- Number them or leave them as bullets — both work.
+Read this part before you start, because it decides whether the file helps:
 
-The examples below are illustrative only, meant to show the SHAPE. Delete them and write my own.
+- Falsifiable observations, not adjectives. "I open with the shortest version of
+  my claim" is good. "I am direct" is useless — it tells the model nothing it can
+  act on.
+- Each line should be something you could verify by reading a sample of your own
+  writing. If you cannot point at an example, it is an aspiration, not an
+  observation, and aspirations make drafts worse.
+- Aim for 10-20 lines. Past 30 they start to dilute each other.
+- Bullets or numbers, either is fine.
+
+WHY THE EXAMPLES BELOW ARE DELIBERATELY BLAND: this file is hashed into the
+corpus baseline and feeds the writer-model directly, so anything left here
+shapes your voice. Earlier versions of this template shipped one person's real
+annotations as "illustrative", which meant every user who did not delete them
+inherited a stranger's typography. The lines below name a KIND of observation
+and nothing more. They are not a starter set to keep — none of them is a claim
+about how you write. Delete all of them.
 -->
 
-1. I open with the shortest possible version of my claim, often a memorable plain-English statement.
-2. I avoid uppercase for emphasis; I use a single bold word instead (e.g. "this is **not** what we do").
-3. I tend to format anything between parentheses as italic.
-4. I use inline links to reference external resources; I prefer that over stacking references at the end.
-5. My posts have a beginning, middle, and end — story-shaped, not section-headed. The arc is in the prose, not in `##` markers.
-6. I avoid repeating myself or describing the same context in different ways in the same piece. Pick the easier-to-grasp version and stick with it.
-7. I favor storytelling over bullet lists; I tend to avoid bullets unless absolutely necessary.
-8. I avoid bulky paragraphs and tend to split them into smaller ones for easier reading.
-9. I do not use semi-colons or em-dashes.
-10. I do not overuse bold formatting — only one or two words at a time, never phrases.
+---
+
+1. My openings usually do <X>. State what happens mechanically, not how it feels.
+2. For emphasis I reach for <X> and never <Y>.
+3. My paragraphs run <short / long / mixed>, and I break them when <condition>.
+4. I handle references by <inline links / a list at the end / naming the source in prose>.
+5. My pieces are shaped like <story arc / sectioned argument / list of findings>.
+6. When I am uncertain I write <the exact hedge you actually use>.
+7. I close by <what you do>, and never by <what you avoid>.
+8. Punctuation I use that most people do not: <X>.
+9. Punctuation I never use: <X>.
+10. When I disagree with something, my move is <X>.

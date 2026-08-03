@@ -209,20 +209,46 @@ python3 scripts/safety_net.py <draft.md> [--input <input.md>]
 
 Pass `--input` when rewriting a provided draft. The script then runs both classes of check.
 
-**Typography (always run):**
-- **Contraction ratio** in prose-shaped drafts. Below the prose floor → flagged. Catches the "every contraction expanded to formal English" failure mode that's the canonical signal of corporate-memo voice.
-- **Heading density.** Too many `##` section headings vs the corpus average → flagged. Light bold is preferred over Markdown headings.
-- **List density.** Too many bullets/numbered items → flagged. Per most writers' annotations, prose is preferred over lists for casual posts.
-- **Paragraph variance.** Too uniform → flagged. Real writing mixes one-line punches with longer prose.
-- **Anti-tic regex matches.** Specific constructs flagged in `anti-corpus.md` (e.g. "is not a typo" → flagged because the writer prefers "yes, I read that correctly").
+**Rhythm (the layer that separates hardest):**
+- **Clipped rhythm.** A composite: sentences short *and* uniform *and* never stretching past 35 words, all three at once. Measured against a real corpus, no single one of those separates — a floor tight enough to catch generated prose also rejects a quarter of the writer's own pieces, because a real range is wide and genuinely overlaps the model's. Requiring convergent evidence takes the catch rate from 32% to 74% at a higher corpus pass rate. Any one of short, uniform or flat is a style. All three together is a generator.
+
+**Typography:**
+- **Contraction floor and ceiling.** The floor catches prose with every contraction expanded, the canonical corporate-memo signal. The ceiling exists because a gate with only a floor is a one-way ratchet — every correction pushes the same direction, nothing pushes back, and the metric sails past the corpus unflagged. That is not hypothetical: it is what happened, at roughly twice the writer's own rate.
+- **Heading density**, **list density**, **paragraph variance**, and **anti-tic regex matches** from `anti-corpus.md`.
 
 **Structural drift (only with `--input`):**
-- **Section-label mimicry.** Compares the section labels (Markdown headings + standalone bold lines) of input and draft. If the Jaccard overlap and ordered overlap both exceed 60%, flagged — the draft inherited the input's section structure instead of rebuilding from `voice_model.md`.
-- **List-shape mimicry.** Compares list item counts. If both have ≥3 items and counts are within 15%, flagged — preserving the input's list shape suggests structure was copied rather than rebuilt.
+- **Sequence retention.** How much of the input's word sequence survives, in order. The decisive one for rewrites: every section label can be replaced and the lists reshaped while two thirds of the original wording sits untouched underneath — a voice pass applied as paint over a skeleton that was never rebuilt.
+- **Section-label mimicry** and **list-shape mimicry**.
+
+**Window and formula (across recent drafts):**
+- **Fading markers.** Signature punctuation is absent from a large minority of anyone's real pieces, so a per-draft floor fails genuine writing about as often as it catches drift. Across a window the signal is clean.
+- **Formula.** Whether recent drafts have converged on one shape, by mean pairwise Burrows's Delta against the corpus's own spread. This is the failure invisible inside any single piece and obvious across ten — the one a reader means when they say the posts have started to feel samey.
 
 The safety net is **not** a voice judge. Passing it does not mean the draft sounds like me. Failing it almost certainly means it doesn't. It catches catastrophes — typographic substitution masquerading as voice rewrite, and structural mimicry of the input — and lets the protocol handle the rest.
 
 When I spot a new failure pattern in a draft, two things go in: a diagnosed entry in `anti-corpus.md` _(read at step 5)_, and an entry in `safety_net.py`'s `ANTI_TIC_PATTERNS` list _(catches it mechanically next time)_.
+
+### `scripts/pick_exemplars.py` — which passages the model reads before drafting
+
+Ranks the corpus by **shape** _(length, density, register)_ and never by subject, because matching on topic pulls the draft toward reusing the exemplar's content instead of its rhythm. Its `EVIDENCE DEPTH` block reports how much writing exists in the register being drafted, and warns when the target is longer than anything available — a corpus of short pieces cannot teach the back half of a long one, and what the model reaches for once the examples run out is its own default.
+
+### `scripts/calibrate.py` — does the gate accept the writing it came from
+
+Runs every band against the corpus that defined it. A gate that rejects its own corpus is not strict, it is broken, and the first few false alarms teach everybody to stop reading it. Every threshold in this repo was set by running this, not by picking a number that sounded about right.
+
+### `scripts/harvest_sessions.py` — a corpus from what you have already typed
+
+Most people cannot find 8–15 pieces of their own writing, and most people have far more than they think sitting in their Claude Code transcripts: months of unedited first-person prose written with no thought of how it would read. That is a better sample than anything anyone submits deliberately.
+
+Only their own typed messages — tool results, pasted files, command output and agent-written prompts are excluded by structure rather than by eye, because agent-to-agent prompts read exactly like something the person would write. Heated messages are dropped, secrets are redacted, and mechanical typos are corrected while grammar and regional spelling are left alone. That last distinction matters: idiom and article use are not errors, they are the writer, and normalising them removes the very signal that separates their prose from generated prose.
+
+Give harvested material its own genre. Instructing an agent is not the register an article gets written in.
+
+### `corpus/genres.txt` — registers, and why pooling them breaks the thresholds
+
+An optional map of globs to registers _(`article: wp-*.md`)_. Thresholds are then computed per register.
+
+This matters more than it sounds. Measured on one real corpus, the `..` trailer runs 15.3 per 1k words in public prose and 1.3 in the same person's working notes. Same writer, different situation. Pooled, the floor for one collapses toward the other and stops catching the drift it exists to catch.
 
 ## How an invocation flows
 
@@ -309,15 +335,23 @@ These exist for one reason: cognitive forcing. Reading the corpus is passive. Wr
 
 ## The honest ceiling
 
-Voice imitation through context-conditioned skills caps around 85%. Even with the protocol above, drafts will be 80–90% I, and the last 10–15% is my editing pass on phrasings that are uniquely mine and not reproducible from any sample size.
+There is a real ceiling here, and it is further away than it looks. Be careful about which one you are actually hitting.
 
-Promising more than that is dishonest. The structural reason is that markdown skills can only condition on context — they don't change the model's weights. The intuitive next move from there is to fine-tune a local open-source model on the same corpus. Do not skip the empirical check before going down that road: at ~100 paired examples, across four training paradigms on a 7B local base, every variant I tried produced drafts that were worse than this skill produces, not better. The fine-tuning path needs orders of magnitude more data than most individuals can produce before it pays back. For personal voice at hobbyist data scale, this skill is the best feasible mechanism — not just a stopgap.
+A context-conditioned skill cannot change the model's weights, so some gap will always remain, and the last stretch is an editing pass on phrasings that are not reproducible from any sample size. That much is true. What is not true is that every shortfall you notice is that ceiling. Measured against a real corpus, output from an earlier version of this skill was missing its writer's signature punctuation at roughly one-seventh of their own rate, running sentences a third shorter with half the variance, and using contractions at nearly twice their rate. None of that is a ceiling. All of it is measurable, none of it was being measured, and every one of those numbers moved once it was.
+
+So before concluding you have hit the limit of the mechanism, run `calibrate.py`, look at what the gate is actually checking, and check whether the corpus contains anything in the register you are asking for. A ceiling is a claim about the mechanism. Most disappointment is a claim about the corpus.
+
+The intuitive next move is to fine-tune a local open-source model on the same corpus. Do not skip the empirical check before going down that road: at ~100 paired examples, across four training paradigms on a 7B local base, every variant tried produced drafts that were worse than this skill produces, not better. Fine-tuning needs orders of magnitude more data than most individuals can produce before it pays back. For personal voice at individual data scale, better conditioning and better gates are where the remaining gains are.
 
 ## Composition with other commands
 
 If I have slash commands or other skills that compose with this one _(e.g., a `linkedin-draft` command that produces fresh posts)_, those commands must compose `my-voice` and run its protocol. The forcing function only fires when the skill is invoked. Bypassing it — drafting directly without the protocol — produces typographic-substitution drafts that look like voice but aren't.
 
 The simplest enforcement: in the composing command's prompt, require explicitly that the protocol's runtime artifacts (`engagement.md`, `critique.md`) exist after drafting. If they don't, the protocol was skipped.
+
+**Do not let the composing command write the piece first.** The tempting shape is: draft it normally, then hand it to `my-voice` to rewrite. It reads as separation of concerns and it does not work. Measured across nineteen articles produced that way, 67% of the original word sequence survived verbatim and in order into the "voice-tuned" version, mean sentence length moved by one word, and the writer's signature trailer appeared exactly zero times in every single pre-voice draft. The abstraction step at step 7 exists to break that pull and cannot fully break it, because a finished draft is a far stronger anchor than any writer-model.
+
+If a command needs grounding before drafting, have it produce a **fact sheet** — claims, numbers, links, sources — and let the voice protocol write the prose once, from that. A rewrite pass over finished text can only ever paint.
 
 ## Bootstrapping my corpus quickly
 
