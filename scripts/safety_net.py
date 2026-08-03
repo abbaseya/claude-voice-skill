@@ -87,16 +87,19 @@ HARD_RULES_BLOCK = re.compile(
 HARD_RULE_ROW = re.compile(r"^\s*-\s*`([^`]+)`\s*(.*)$")
 
 # Persona-neutral anti-tic patterns — generic markers that hold regardless of
-# whose voice this is. Anything specific to one writer (typography, in-house
-# terminology, capitalisation) belongs in that writer's hard-rules.md instead.
+# whose voice this is. Anything specific to one writer belongs in that writer's
+# own hard-rules.md, which is loaded at runtime and applies only to them.
+#
+# The bar for adding a row here is high, and it is not "the author of this
+# plugin dislikes it". A `^#{2,6}\s` heading rule used to live here, and it
+# flagged every draft written by anyone who structures prose with section
+# headings — their own corpus included. Typography is a voice preference, and
+# voice preferences are per-writer. The corpus-derived `heading_density` check
+# below already adapts to whoever is using this.
 ANTI_TIC_PATTERNS: List[Tuple[str, str]] = [
     (
         r"\bis not a typo\b",
-        "anti-corpus: 'is not a typo' construct.",
-    ),
-    (
-        r"^[#]{2,6}\s",
-        "headings: ## section headings rarely appear in corpus; light bold is preferred.",
+        "'is not a typo' construct — a stock emphasis marker rather than a claim.",
     ),
 ]
 

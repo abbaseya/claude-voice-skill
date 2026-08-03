@@ -96,25 +96,31 @@ REDACTIONS: List[Tuple[re.Pattern, str]] = [
 ]
 
 # Mechanical slips only — transpositions, dropped letters, missing apostrophes.
+# Keyboard accidents any English typist makes, nothing domain-specific.
 #
 # What is deliberately NOT corrected: grammar, idiom, article use, subject-verb
 # agreement, regional spelling. Those are not errors, they are the writer, and
 # they are a large part of what separates their prose from generated prose.
 # "it worth the shot" and "such concept" survive; "wiht" does not.
 #
-# Nothing lands here on the strength of a spellchecker alone. Every entry was
-# checked against the writer's actual usage, because the automatic candidates
-# included "it's"->"its", "apps"->"apis" and "behaviour"->"behavior", each of
-# which would have corrupted correct text.
-TYPO_MAP = {
+# Nothing lands here on the strength of a spellchecker alone. Automatic
+# edit-distance candidates included "it's"->"its", "apps"->"apis" and
+# "behaviour"->"behavior", each of which would have corrupted correct text.
+#
+# Your own recurring typos — and especially anything specific to your work, a
+# product name or a piece of jargon — go in your own file and load with
+# `--typos`. They do not belong here: a correction that only makes sense inside
+# one person's vocabulary is noise in everybody else's, and "bucketing" spelled
+# four ways is not a fact about the English language.
+GENERIC_TYPOS = {
     # transpositions and dropped letters
     "otehr": "other", "chanegs": "changes", "managament": "management",
     "yoru": "your", "shold": "should", "shoudl": "should", "genearted": "generated",
-    "curent": "current", "mermain": "mermaid", "sesison": "session",
+    "curent": "current", "sesison": "session",
     "numebrs": "numbers", "alrwady": "already", "frature": "feature",
     "indedd": "indeed", "necesary": "necessary", "necesasry": "necessary",
     "necesarily": "necessarily", "convenstional": "conventional",
-    "convension": "convention", "valut": "vault", "easlier": "easier",
+    "valut": "vault", "easlier": "easier",
     "connetced": "connected", "befoer": "before", "sicne": "since",
     "cluade": "claude", "cladue": "claude", "youself": "yourself",
     "enforement": "enforcement", "proeprly": "properly", "freamework": "framework",
@@ -128,7 +134,7 @@ TYPO_MAP = {
     "cldeaner": "cleaner", "epecially": "especially", "espeically": "especially",
     "procedd": "proceed", "powerfull": "powerful", "guture": "future",
     "breacking": "breaking", "rthat": "that", "wortks": "works",
-    "nucketing": "bucketing", "improvment": "improvement",
+    "improvment": "improvement",
     "udnerstand": "understand", "understang": "understand", "innstall": "install",
     "instrall": "install", "welll": "well", "explaning": "explaining",
     "breifly": "briefly", "eaxctly": "exactly", "workign": "working",
@@ -194,7 +200,7 @@ def redact(text: str) -> str:
 
 
 _TYPO_RX = re.compile(
-    r"\b(%s)\b" % "|".join(sorted((re.escape(k) for k in TYPO_MAP), key=len, reverse=True)),
+    r"\b(%s)\b" % "|".join(sorted((re.escape(k) for k in GENERIC_TYPOS), key=len, reverse=True)),
     re.IGNORECASE)
 
 
@@ -204,7 +210,7 @@ def fix_typos(text: str, extra: Optional[Dict[str, str]] = None) -> Tuple[str, i
     Whole-word only. A substring pass would turn "internal" into "in'ternal"
     the moment a contraction entry matched inside another word.
     """
-    table = dict(TYPO_MAP)
+    table = dict(GENERIC_TYPOS)
     if extra:
         table.update(extra)
     count = 0

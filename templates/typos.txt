@@ -1,0 +1,28 @@
+# Your own typo corrections, for `harvest_sessions.py --typos <this file>`.
+#
+# One per line, `wrong=right`. Lines starting with # are ignored. Matching is
+# whole-word and case-insensitive; the replacement keeps the case you typed.
+#
+# The harvester already carries a set of generic English keyboard slips — "wiht",
+# "teh", "recieve" and friends. This file is for what it cannot know:
+#
+#   - product, tool and jargon names you mistype
+#   - your own recurring transpositions
+#   - anything specific to your work
+#
+# Two rules, both learned the hard way from a spellchecker's suggestions:
+#
+#   1. Never add a word that is also a real word. "wont", "lets", "ill", "id",
+#      "its" and "apps" all look like typos in context and are not. Correcting
+#      one rewrites a correct sentence into a broken one.
+#   2. Never correct grammar or regional spelling here. "behaviour", "organised"
+#      and "sceptic" are not errors. Neither is your idiom — dropped articles and
+#      unusual agreement are a large part of what makes your prose yours rather
+#      than the model's, and normalising them removes exactly the signal this
+#      whole skill is trying to preserve.
+#
+# Examples — delete these and add your own:
+
+# bucketting=bucketing
+# kubernets=kubernetes
+# postgress=postgres
