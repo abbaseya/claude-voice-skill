@@ -89,11 +89,21 @@ Read `annotations.md` and `anti-corpus.md` end to end. They calibrate the writer
 
 Then read `hard-rules.md` if it exists. **Hard rules are not calibrators.** Annotations and anti-corpus are soft signals that shaped the writer-model; hard rules are absolute do/don't constraints the writer has set, and they override the writer-model and the corpus whenever they conflict — even if the corpus shows the writer occasionally breaking one. Apply every hard rule as a gate at draft time (step 8) and re-check the draft against each one at critique time (step 9). The machine-checked subset (the rows inside the `machine-checked-rules` markers) is additionally enforced by the safety net in step 11. `hard-rules.md` is read fresh on every run and is not part of the cached writer-model, so editing it takes effect immediately with no regeneration.
 
-### 5. Topic intake
+### 5. Topic intake and exemplar selection
 
-Write `$SESSION_DIR/topic.md` with two short sections:
+Write `$SESSION_DIR/topic.md` with:
 - **Topic and goal:** one sentence.
-- **Closest-shape corpus pieces:** name 2–3 corpus pieces that match the **shape** (length, register, structure) of what's about to be written — not the topic. State why each was picked.
+- **Target length and genre:** roughly how many words, and which genre from `corpus/genres.txt` (if that file exists).
+
+Then pick the exemplars mechanically rather than by judgement:
+
+```
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/pick_exemplars.py" --words <target> [--genre <genre>]
+```
+
+It ranks the corpus by **shape** — length, density, register — never by subject, because matching on topic pulls the draft toward reusing the exemplar's content instead of its rhythm. Paste its output into `topic.md`.
+
+Read its warnings. If it reports that the target is longer than anything in the corpus, say so in the final delivery: past that length the draft has no example to imitate and will drift toward the model's defaults, and that is worth the writer knowing before they publish rather than after.
 
 ### 6. Engagement note
 
@@ -109,13 +119,17 @@ If the task is to write a fresh piece (no input), skip this step — my `topic.m
 
 ### 8. Draft
 
-Write the draft to `$SESSION_DIR/draft.md`. Primary references, in order:
-1. `runtime/voice_model.md` — the inhabited writer-model. **The structural shape of the draft comes from here, not from the input.**
+**First, read every exemplar from step 5 in full, with the Read tool, immediately before writing.** Not skimmed, not recalled from the writer-model — the actual text, in context, at drafting time.
+
+This is the step the whole protocol turns on. A writer-model is a *description* of how somebody writes, and a description is something the model obeys rather than imitates. Obeying "varies sentence length deliberately" reliably produces sentences of uniform length, because the instruction carries no rhythm to copy, only an intention to satisfy. The passages carry the rhythm. Drafting from the description alone is what produces prose that passes every stated rule and still reads as generated.
+
+Then write the draft to `$SESSION_DIR/draft.md`. References, in order:
+1. **The exemplar pieces themselves** — the rhythm, sentence shapes and paragraph movement to imitate.
 2. `$SESSION_DIR/engagement.md` — the moves committed for this specific draft.
 3. `$SESSION_DIR/ideas.md` (if rewriting) or `$SESSION_DIR/topic.md` (if fresh) — the substance.
 4. `hard-rules.md` — absolute do/don't constraints. These override 1–3 on any conflict.
 5. `anti-corpus.md` — patterns to avoid.
-6. The corpus itself, only when sampling specific phrasings.
+6. `runtime/voice_model.md` — consult only to settle a question the exemplars do not answer.
 
 Do **not** open the input file again during drafting (if rewriting). Do **not** consult `annotations.md` directly while drafting. The voice model already incorporated annotations; reopening either of those files reintroduces the structural mimicry or checklist-application failure modes. Hard rules are the exception: apply every rule in `hard-rules.md`, and when a hard rule conflicts with an observed corpus habit, the hard rule wins.
 
@@ -132,19 +146,21 @@ Apply the critique. Rewrite the struck sentences. Keep revising until the draft 
 Run:
 
 ```
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/safety_net.py" "$SESSION_DIR/draft.md" [--input <path-to-input.md>]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/safety_net.py" "$SESSION_DIR/draft.md" [--genre <genre>] [--input <path-to-input.md>]
 ```
 
-Pass `--input` when rewriting an existing draft. The script then runs both:
-- Typography checks (contractions, headings, list density, paragraph variance, anti-tic patterns). It also loads the machine-checked patterns from `hard-rules.md` and flags any match, so mechanically-expressible hard rules are caught here too.
-- A **structural drift check**: compares section labels, list shape, and paragraph counts between input and draft. Flags when the draft's structure too closely mirrors the input — the failure mode where voice gets applied as a coat of paint over a preserved input skeleton.
+Pass `--genre` so the draft is measured against the right register. Pass `--input` when rewriting an existing draft. The script runs three layers:
 
-When fresh-drafting (no input), call without `--input`.
+- **Per-draft.** Sentence rhythm (a composite check for prose that is short *and* uniform *and* never stretches out), typography, contraction floor and ceiling, the machine-checked patterns from `hard-rules.md`, and — with `--input` — structural mimicry, including how much of the input's word sequence survives in order.
+- **Window.** Signature punctuation across the last several drafts. A marker absent from one piece proves nothing; absent across a run it is drift.
+- **Formula.** Whether recent drafts have converged on one shape. This is the failure nobody sees inside a single piece and every regular reader sees across ten.
 
-- If `NO_VIOLATIONS`: deliver the draft.
-- If `VIOLATIONS`: address each one and re-run, or document explicitly why a deviation is intentional (rare — most violations are real).
+Output:
+- `NO_VIOLATIONS` and no `DRIFT` block: deliver the draft.
+- `VIOLATIONS`: address each one and re-run, or document explicitly why a deviation is intentional (rare — most violations are real).
+- `DRIFT`: these are about the recent run, not this draft alone, and they are still this draft's job. If the trailer has been fading for eight drafts, this is the one that stops the trend. Do not treat a clean `NO_VIOLATIONS` as permission to ignore them.
 
-The safety net is **mechanical**. It catches catastrophic typography drift and structural mimicry. It is **not** a voice judge. Passing it does not mean the draft sounds like the writer; failing it almost certainly means it doesn't.
+The safety net is **mechanical**. It is **not** a voice judge. Passing it does not mean the draft sounds like the writer; failing it almost certainly means it doesn't.
 
 ### 12. Deliver
 
@@ -161,6 +177,36 @@ This skill provides voice. Topic skills (a `convert-*` skill, a `product-*` skil
 - It does not guarantee 99% voice match. The structural ceiling for context-conditioned skills is around 85%. Higher fidelity requires fine-tuning, which is not currently exposed for Claude.
 - It does not replace the writer's editor pass.
 - It does not work for content that isn't the writer's first-person voice (e.g., third-party docs, formal contracts).
+
+## Corpus health
+
+Two tools exist because the commonest reason a draft misses voice is not the protocol — it is that the corpus cannot answer the question being asked of it.
+
+**Is there enough of the right kind of writing?**
+
+```
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/pick_exemplars.py" --words 1000 --genre article
+```
+
+Its `EVIDENCE DEPTH` block reports how much writing exists in the register being drafted, and warns when the target is longer than anything available. A corpus of short pieces cannot teach the back half of a long one, and what the model reaches for once the examples run out is its own default.
+
+**Do the thresholds accept the writing they came from?**
+
+```
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/calibrate.py" --verbose
+```
+
+Run after changing a threshold, adding pieces, or editing `genres.txt`. A gate that rejects the corpus it was built from is not strict, it is broken — and the first few false alarms teach everybody to stop reading it.
+
+**Genres.** An optional `corpus/genres.txt` maps globs to registers (`article: wp-*.md`). Thresholds are then computed per register. This matters more than it sounds: the same writer's public prose and working notes can differ by an order of magnitude on signature punctuation, and pooled, the floor for one collapses toward the other and stops catching the drift it exists to catch.
+
+**Short of material?**
+
+```
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/harvest_sessions.py" --dry-run --sample 5
+```
+
+Builds corpus pieces from what the writer has typed into Claude Code — unedited first-person prose written with no thought of how it would read, which is a better sample than anything anyone submits deliberately. Only their own typed messages; tool output, pasted files and agent-written prompts are excluded. Heated messages are dropped, secrets are redacted, mechanical typos are corrected and grammar is left alone. Give it its own genre: instructing an agent is not the register an article gets written in.
 
 ## When the corpus changes
 
