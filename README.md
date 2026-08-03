@@ -52,7 +52,7 @@ There are two kinds of internal model. The first is _weight-level_ — the kind 
 
 The second is _context-level_ — the kind a markdown skill can produce. My corpus sits in the input context, and the model is free to read it and condition its output on it, but its weights are unchanged. Generation is still pulled hard toward pretraining priors *(i.e. polished professional writing)*. A good protocol can fight the pull, a bad one can't, but no protocol can eliminate it.
 
-A markdown skill cannot build a true internal model. What it _can_ do is force the model to _simulate_ having one, every time, from scratch, by computing a structured analysis of my writing into context before drafting. That simulation is the writer-model. It's real and useful, and empirically — at the data scale most individuals can produce — it outperforms locally fine-tuned models of comparable accessibility. The ceiling for context-conditioned skills is around 85% voice match; the ceiling for a hobbyist-scale local fine-tune of a 7B model sits lower than that, not higher.
+A markdown skill cannot build a true internal model. What it _can_ do is force the model to _simulate_ having one, every time, from scratch, by computing a structured analysis of my writing into context before drafting. That simulation is the writer-model. It's real and useful, and empirically — at the data scale most individuals can produce — it outperforms locally fine-tuned models of comparable accessibility. Both approaches have a ceiling and the fine-tune's sits lower; where the context-conditioned one sits is not something anybody here has measured, so this README does not put a number on it. See [The honest ceiling](#the-honest-ceiling).
 
 ### Why writing it down works (and reading silently doesn't)
 
@@ -374,7 +374,7 @@ mkdir -p ~/.claude/my-voice/corpus
 
 ## Two things to be honest about
 
-**Voice transfer has a ceiling.** 85% on a good day with this mechanism. Anyone promising 99% — from a markdown skill or from a hobbyist-scale local fine-tune — is either wrong or selling something. Plan to do the editing pass myself.
+**Voice transfer has a ceiling, and it is further out than the first bad draft suggests.** Anyone promising an exact match — from a markdown skill or from a hobbyist-scale local fine-tune — is either wrong or selling something, so plan to do the editing pass myself. But do not accept a disappointing draft as the ceiling either: measure it first. Run `calibrate.py`, check what the gate is actually checking, and look at whether the corpus holds anything in the register being asked for.
 
 **The skill keeps growing.** My voice now isn't my voice in two years. Add new pieces every few months — especially anything that landed well, or anything where I noticed myself writing differently than usual. Treat the skill as a living artifact, not a one-time setup. Every off-voice draft the skill produces is a sharpening opportunity for `anti-corpus.md` and `ANTI_TIC_PATTERNS`.
 

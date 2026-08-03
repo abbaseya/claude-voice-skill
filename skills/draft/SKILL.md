@@ -7,7 +7,7 @@ description: Use when drafting any first-person content in my voice — LinkedIn
 
 This skill produces drafts in my voice by forcing the model — at every invocation — to **inhabit me as a writer** before drafting, draft from inside that inhabitation, and critique the draft as I would. The corpus is the source. Annotations and anti-corpus calibrate. Hard rules (`hard-rules.md`) are absolute — they override the writer-model and the corpus whenever they conflict. The protocol is the forcing function: it makes the inhabitation cheap to do and expensive to skip.
 
-The mechanism has a known structural ceiling around 85% voice match — text-only context conditioning cannot exceed that without weight-level fine-tuning. The last 10–15% is my editing pass.
+There is a real limit here: context conditioning leaves the model's weights unchanged, so some gap always remains and the last stretch is the writer's own editing pass. What that gap actually measures has not been established, and no figure should be quoted as if it had — treat a disappointing draft as a thing to measure, not as the ceiling arriving.
 
 **Where the inputs live.** Throughout this protocol, **`VOICE`** = `~/.claude/my-voice/` (or `$MY_VOICE_HOME` if set). The corpus (`corpus/`), `annotations.md`, `anti-corpus.md`, `hard-rules.md` and the generated `runtime/` cache all live under `VOICE` — every bare `corpus/`, `runtime/…`, `annotations.md`, `anti-corpus.md` and `hard-rules.md` reference below means `VOICE/…`. They live **outside the plugin on purpose**: the plugin directory is replaced on every update, and anything of mine stored inside it would be deleted. Run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/paths.py"` to print the resolved locations.
 
@@ -174,7 +174,7 @@ This skill provides voice. Topic skills (a `convert-*` skill, a `product-*` skil
 
 ## What this skill does not do
 
-- It does not guarantee 99% voice match. The structural ceiling for context-conditioned skills is around 85%. Higher fidelity requires fine-tuning, which is not currently exposed for Claude.
+- It does not reproduce a voice exactly. Weights are unchanged, so a gap remains; its size is not something this skill has measured, and any specific percentage would be invented.
 - It does not replace the writer's editor pass.
 - It does not work for content that isn't the writer's first-person voice (e.g., third-party docs, formal contracts).
 
